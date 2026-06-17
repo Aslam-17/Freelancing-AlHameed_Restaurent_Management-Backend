@@ -18,14 +18,21 @@ const SystemSettings = require('../models/SystemSettings');
 // ─────────────────────────────────────────────────────────────
 const createOrder = async (req, res, next) => {
   try {
-    const { tableId, customerName, customerPhone, items, orderId } = req.body;
+    const { tableId, customerName, customerPhone, items, orderId, numberOfPeople } = req.body;
 
-    if (!tableId || !customerName || !items || items.length === 0) {
+    if (!tableId || !customerName || !items || items.length === 0 || !numberOfPeople) {
       return res.status(400).json({
         success: false,
-        message: 'tableId, customerName, and at least one item are required.',
+        message: 'tableId, customerName, numberOfPeople, and at least one item are required.',
       });
     }
+
+    const Table = require('../models/Table');
+    const table = await Table.findById(tableId);
+    if (!table) return res.status(404).json({ success: false, message: 'Table not found.' });
+
+    const settings = await SystemSettings.getSingleton();
+    const acCharge = table.zone === 'AC' ? (settings.acChargePerPerson * numberOfPeople) : 0;
 
     // ── Resolve prices from the DB — never trust client-submitted prices ──
     const resolvedItems = [];
@@ -66,7 +73,9 @@ const createOrder = async (req, res, next) => {
       }
 
       existingOrder.items = resolvedItems;
-      existingOrder.totalAmount = subTotal;
+      existingOrder.numberOfPeople = numberOfPeople;
+      existingOrder.acCharge = acCharge;
+      existingOrder.totalAmount = subTotal + acCharge;
       await existingOrder.save();
 
       return res.status(200).json({
@@ -100,10 +109,13 @@ const createOrder = async (req, res, next) => {
       }
 
       // Recalculate total amount from all items
-      existingOrder.totalAmount = existingOrder.items.reduce(
+      const existingSubTotal = existingOrder.items.reduce(
         (acc, item) => acc + item.priceAtTimeOfOrder * item.quantity,
         0
       );
+      existingOrder.numberOfPeople = numberOfPeople;
+      existingOrder.acCharge = acCharge;
+      existingOrder.totalAmount = existingSubTotal + acCharge;
 
       // Save updated order
       await existingOrder.save();
@@ -121,8 +133,10 @@ const createOrder = async (req, res, next) => {
       waiterId:     req.user.id, // from the verified JWT
       customerName,
       customerPhone,
+      numberOfPeople,
+      acCharge,
       items:        resolvedItems,
-      totalAmount:  subTotal,   // GST added at bill-completion time
+      totalAmount:  subTotal + acCharge,
     });
 
     res.status(201).json({
@@ -180,8 +194,9 @@ const completeOrder = async (req, res, next) => {
       (acc, item) => acc + item.priceAtTimeOfOrder * item.quantity,
       0
     );
-    const gstAmount = parseFloat(((subTotal * gstPercentage) / 100).toFixed(2));
-    const total     = parseFloat((subTotal + gstAmount).toFixed(2));
+    const baseAmount = subTotal + (order.acCharge || 0);
+    const gstAmount = parseFloat(((baseAmount * gstPercentage) / 100).toFixed(2));
+    const total     = parseFloat((baseAmount + gstAmount).toFixed(2));
 
     // ── Archive to Bills collection ──
     const bill = await Bill.create({
@@ -189,6 +204,8 @@ const completeOrder = async (req, res, next) => {
       waiterId:      order.waiterId,
       customerName:  order.customerName,
       customerPhone: order.customerPhone,
+      numberOfPeople: order.numberOfPeople,
+      acCharge:      order.acCharge || 0,
       items:         order.items,
       totalAmount:   total,
       gstApplied:    gstAmount,

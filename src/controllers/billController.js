@@ -191,4 +191,20 @@ const getItemSales = async (req, res, next) => {
   }
 };
 
-module.exports = { getBillHistory, getAnalytics, getTodaysBills, getItemSales };
+// ─────────────────────────────────────────────────────────────
+// DELETE /api/bills/:id
+// Admin-only. Deletes a specific bill from history.
+// ─────────────────────────────────────────────────────────────
+const deleteBill = async (req, res, next) => {
+  try {
+    const bill = await Bill.findByIdAndDelete(req.params.id);
+    if (!bill) {
+      return res.status(404).json({ success: false, message: 'Bill not found.' });
+    }
+    res.status(200).json({ success: true, message: 'Bill deleted successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getBillHistory, getAnalytics, getTodaysBills, getItemSales, deleteBill };

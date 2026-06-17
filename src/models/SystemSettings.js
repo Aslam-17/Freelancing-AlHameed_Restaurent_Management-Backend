@@ -19,6 +19,11 @@ const systemSettingsSchema = new mongoose.Schema(
       min:     [0,  'GST percentage cannot be negative'],
       max:     [100,'GST percentage cannot exceed 100'],
     },
+    acChargePerPerson: {
+      type:    Number,
+      default: 0,
+      min:     [0, 'AC charge cannot be negative'],
+    },
   },
   {
     timestamps:  true,

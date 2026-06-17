@@ -21,24 +21,32 @@ const getSettings = async (req, res, next) => {
 // Body: { gstPercentage: 18 }
 const updateGst = async (req, res, next) => {
   try {
-    const { gstPercentage } = req.body;
+    const { gstPercentage, acChargePerPerson } = req.body;
+    const updates = {};
 
-    if (gstPercentage === undefined || typeof gstPercentage !== 'number') {
-      return res.status(400).json({
-        success: false,
-        message: 'gstPercentage (number) is required.',
-      });
+    if (gstPercentage !== undefined) {
+      if (typeof gstPercentage !== 'number') return res.status(400).json({ success: false, message: 'gstPercentage must be a number.' });
+      updates.currentGstPercentage = gstPercentage;
+    }
+
+    if (acChargePerPerson !== undefined) {
+      if (typeof acChargePerPerson !== 'number') return res.status(400).json({ success: false, message: 'acChargePerPerson must be a number.' });
+      updates.acChargePerPerson = acChargePerPerson;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: 'Provide at least one setting to update.' });
     }
 
     const settings = await SystemSettings.findByIdAndUpdate(
       'global_settings',
-      { currentGstPercentage: gstPercentage },
+      updates,
       { new: true, runValidators: true, upsert: true }
     );
 
     res.status(200).json({
       success: true,
-      message: `GST updated to ${gstPercentage}%.`,
+      message: 'Settings updated successfully.',
       data:    settings,
     });
   } catch (error) {

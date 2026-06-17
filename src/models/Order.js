@@ -57,6 +57,18 @@ const orderSchema = new mongoose.Schema(
       // Optional — no `required` flag
     },
 
+    numberOfPeople: {
+      type:     Number,
+      required: [true, 'Number of people is required'],
+      min:      [1, 'Must have at least 1 person'],
+    },
+
+    acCharge: {
+      type:    Number,
+      default: 0,
+      min:     [0, 'AC charge cannot be negative'],
+    },
+
     items: {
       type:     [orderItemSchema],
       validate: {

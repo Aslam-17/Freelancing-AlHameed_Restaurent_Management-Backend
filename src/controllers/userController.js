@@ -7,7 +7,7 @@ const User = require('../models/User');
 // GET /api/users — list all Waiter accounts
 const listWaiters = async (req, res, next) => {
   try {
-    const waiters = await User.find({ role: 'Waiter' }).select('-password').sort('username');
+    const waiters = await User.find().select('-password').sort('role username');
     res.json({ success: true, data: waiters });
   } catch (err) { next(err); }
 };
@@ -15,14 +15,16 @@ const listWaiters = async (req, res, next) => {
 // POST /api/users — create a new Waiter account
 const createWaiter = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, role } = req.body;
     if (!username || !password)
       return res.status(400).json({ success: false, message: 'Username and password are required.' });
 
-    const user = await User.create({ username: username.toLowerCase().trim(), password, role: 'Waiter' });
+    const userRole = role === 'Admin' ? 'Admin' : 'Waiter';
+
+    const user = await User.create({ username: username.toLowerCase().trim(), password, role: userRole });
     res.status(201).json({
       success: true,
-      message: 'Waiter created.',
+      message: 'User created.',
       data: { _id: user._id, username: user.username, role: user.role, createdAt: user.createdAt },
     });
   } catch (err) {
@@ -39,13 +41,13 @@ const updateWaiter = async (req, res, next) => {
     if (!username)
       return res.status(400).json({ success: false, message: 'Username is required.' });
 
-    const user = await User.findOneAndUpdate(
-      { _id: req.params.id, role: 'Waiter' },
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
       { username: username.toLowerCase().trim() },
       { new: true, runValidators: true }
     ).select('-password');
 
-    if (!user) return res.status(404).json({ success: false, message: 'Waiter not found.' });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
     res.json({ success: true, data: user });
   } catch (err) {
     if (err.code === 11000)
@@ -61,8 +63,8 @@ const resetWaiterPassword = async (req, res, next) => {
     if (!password || password.length < 6)
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
 
-    const user = await User.findOne({ _id: req.params.id, role: 'Waiter' });
-    if (!user) return res.status(404).json({ success: false, message: 'Waiter not found.' });
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
     user.password = password;
     await user.save(); // triggers bcrypt pre-save hook
@@ -70,12 +72,11 @@ const resetWaiterPassword = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// DELETE /api/users/:id — delete a waiter account
 const deleteWaiter = async (req, res, next) => {
   try {
-    const user = await User.findOneAndDelete({ _id: req.params.id, role: 'Waiter' });
-    if (!user) return res.status(404).json({ success: false, message: 'Waiter not found.' });
-    res.json({ success: true, message: 'Waiter deleted.' });
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    res.json({ success: true, message: 'User deleted.' });
   } catch (err) { next(err); }
 };
 

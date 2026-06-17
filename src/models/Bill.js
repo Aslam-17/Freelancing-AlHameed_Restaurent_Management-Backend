@@ -38,6 +38,9 @@ const billSchema = new mongoose.Schema(
     customerName:  { type: String, required: true, trim: true },
     customerPhone: { type: String, trim: true },
 
+    numberOfPeople: { type: Number, required: true, min: 1 },
+    acCharge:       { type: Number, default: 0, min: 0 },
+
     items:         { type: [billItemSchema], default: [] },
     totalAmount:   { type: Number, required: true, min: 0 },
     gstApplied:    { type: Number, default: 0, min: 0 },

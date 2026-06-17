@@ -19,5 +19,6 @@ router.use(verifyToken, requireAdmin);
 router.get('/history',    billController.getBillHistory);
 router.get('/analytics',  billController.getAnalytics);
 router.get('/item-sales', billController.getItemSales);
+router.delete('/:id',     billController.deleteBill);
 
 module.exports = router;
