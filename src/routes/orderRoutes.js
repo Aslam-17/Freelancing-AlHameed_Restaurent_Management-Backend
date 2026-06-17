@@ -17,5 +17,6 @@ router.use(verifyToken);
 router.get('/active',           orderController.getActiveOrders);
 router.post('/',                orderController.createOrder);
 router.post('/:id/complete',    orderController.completeOrder);
+router.delete('/:id',           verifyToken, orderController.deleteOrder);
 
 module.exports = router;
