@@ -12,14 +12,16 @@ const listWaiters = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// POST /api/users — create a new Waiter account
+// POST /api/users — create a new staff account (Waiter, Biller, or Admin)
 const createWaiter = async (req, res, next) => {
   try {
     const { username, password, role } = req.body;
     if (!username || !password)
       return res.status(400).json({ success: false, message: 'Username and password are required.' });
 
-    const userRole = role === 'Admin' ? 'Admin' : 'Waiter';
+    // Accept any valid role; default to Waiter if an unrecognised value is sent
+    const VALID_ROLES = ['Admin', 'Waiter', 'Biller'];
+    const userRole = VALID_ROLES.includes(role) ? role : 'Waiter';
 
     const user = await User.create({ username: username.toLowerCase().trim(), password, role: userRole });
     res.status(201).json({

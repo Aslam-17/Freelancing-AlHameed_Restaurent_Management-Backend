@@ -32,16 +32,24 @@ const orderItemSchema = new mongoose.Schema(
 
 const orderSchema = new mongoose.Schema(
   {
+    // Optional for Takeaway orders (no physical table assigned)
     tableId: {
-      type:     mongoose.Schema.Types.ObjectId,
-      ref:      'Table',
-      required: [true, 'Table reference is required'],
+      type: mongoose.Schema.Types.ObjectId,
+      ref:  'Table',
+      // NOT required at schema level — controller validates based on orderType
     },
 
     waiterId: {
       type:     mongoose.Schema.Types.ObjectId,
       ref:      'User',
       required: [true, 'Waiter reference is required'],
+    },
+
+    // Dine-in | Takeaway — determines whether tableId is needed
+    orderType: {
+      type:    String,
+      enum:    ['Dine-in', 'Takeaway'],
+      default: 'Dine-in',
     },
 
     customerName: {
@@ -58,9 +66,9 @@ const orderSchema = new mongoose.Schema(
     },
 
     numberOfPeople: {
-      type:     Number,
-      required: [true, 'Number of people is required'],
-      min:      [1, 'Must have at least 1 person'],
+      type:    Number,
+      default: 1,
+      min:     [0, 'Number of people cannot be negative'],
     },
 
     acCharge: {
@@ -94,8 +102,9 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ── Index to quickly fetch all active orders for a specific table ──
+// ── Indexes ──
 orderSchema.index({ tableId: 1 });
 orderSchema.index({ waiterId: 1 });
+orderSchema.index({ orderType: 1 });
 
 module.exports = mongoose.model('Order', orderSchema);

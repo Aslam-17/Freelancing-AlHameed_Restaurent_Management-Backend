@@ -78,9 +78,9 @@ const register = async (req, res, next) => {
       });
     }
 
-    // Safety: only allow Waiter creation through this endpoint.
-    // Admin accounts must be seeded directly in the database.
-    const assignedRole = role === 'Admin' ? 'Waiter' : (role || 'Waiter');
+    // Allow Admin, Waiter, and Biller — default to Waiter if not specified
+    const VALID_ROLES = ['Admin', 'Waiter', 'Biller'];
+    const assignedRole = VALID_ROLES.includes(role) ? role : 'Waiter';
 
     const user = await User.create({ username, password, role: assignedRole });
 

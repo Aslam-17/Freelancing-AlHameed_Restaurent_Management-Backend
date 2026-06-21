@@ -29,16 +29,24 @@ const billSchema = new mongoose.Schema(
     tableId: {
       type: mongoose.Schema.Types.ObjectId,
       ref:  'Table',
+      // Optional — Takeaway bills have no table
     },
     waiterId: {
       type: mongoose.Schema.Types.ObjectId,
       ref:  'User',
     },
 
+    // Dine-in | Takeaway
+    orderType: {
+      type:    String,
+      enum:    ['Dine-in', 'Takeaway'],
+      default: 'Dine-in',
+    },
+
     customerName:  { type: String, required: true, trim: true },
     customerPhone: { type: String, trim: true },
 
-    numberOfPeople: { type: Number, required: true, min: 1 },
+    numberOfPeople: { type: Number, default: 1, min: 0 },
     acCharge:       { type: Number, default: 0, min: 0 },
 
     items:         { type: [billItemSchema], default: [] },
@@ -58,5 +66,6 @@ billSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800 });
 // ── Indexes to support analytics aggregation pipelines ──
 billSchema.index({ customerName: 1 });
 billSchema.index({ createdAt: -1 });
+billSchema.index({ orderType: 1 });
 
 module.exports = mongoose.model('Bill', billSchema);
